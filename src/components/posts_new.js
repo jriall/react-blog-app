@@ -1,26 +1,42 @@
+import _ from 'lodash';
 import React, { Component } from 'react';
 import { Field, reduxForm } from 'redux-form';
 import { Link } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { createPost } from '../actions';
 
-class PostsNew extends Component {
-  renderField(field) {
-    const { meta: {touched, error} } = field;
-    const className = `form-group ${touched && error ? 'has-danger' : ''}`;
+const FIELDS = {
+  title: {
+    type: 'input',
+    label: 'Title for Post',
+  },
+  categories: {
+    type: 'input',
+    label: 'Enter some categories for this post',
+  },
+  content: {
+    type: 'textarea',
+    label: 'Post contents',
+  },
+};
 
-    return (
-      <div className={className}>
-        <label>{field.label}</label>
-        <input
-          className="form-control"
-          type="text"
-          {...field.input}
-        />
-        <div className="text-help">{touched ? error : ""}</div>
-      </div>
-    );
-  }
+class PostsNew extends Component {
+  // renderField(field) {
+  //   const { meta: {touched, error} } = field;
+  //   const className = `form-group ${touched && error ? 'has-danger' : ''}`;
+
+  //   return (
+  //     <div className={className}>
+  //       <label>{field.label}</label>
+  //       <input
+  //         className="form-control"
+  //         type="text"
+  //         {...field.input}
+  //       />
+  //       <div className="text-help">{touched ? error : ""}</div>
+  //     </div>
+  //   );
+  // }
 
   onSubmit(values) {
     this.props.createPost(values, () => {
@@ -28,27 +44,28 @@ class PostsNew extends Component {
     });
   }
 
+  renderField(fieldConfig, field) {
+    const fieldHelper = this.props.fields[field];
+    console.log(fieldHelper)
+    return (
+      <div className={`form-group ${fieldHelper.touched && fieldHelper.invalid ? 'has-danger' : ''}`}>
+        <label>{fieldConfig.label}</label>
+        <fieldConfig.type type="text" className="form-control" {...fieldHelper} />
+        <div className="text-help">
+          {fieldHelper.touched ? fieldHelper.error : ''}
+        </div>
+      </div>
+    );
+  }
+
   render() {
-    const { handleSubmit } = this.props;
+    const { fields: { title, categories, content}, handleSubmit } = this.props;
 
     return (
       <div>
         <form onSubmit={handleSubmit(this.onSubmit.bind(this))}>
-          <Field
-            label="Title For Post"
-            name="title"
-            component={this.renderField}
-          />
-          <Field
-            label="Categories"
-            name="categories"
-            component={this.renderField}
-          />
-          <Field
-            label="Post Content"
-            name="content"
-            component={this.renderField}
-          />
+          <h3>Create A New Post</h3>
+          {_.map(FIELDS, this.renderField.bind(this))}
           <button type="submit" className="btn btn-primary">Submit</button>
           <Link to="/" className="btn btn-danger">Cancel</Link>
         </form>
@@ -60,26 +77,18 @@ class PostsNew extends Component {
 function validate(values) {
   const errors = {};
 
-  //validate the inpurs from 'values'
-  if (!values.title) {
-    errors.title = 'Enter a title!';
-  }
-  if (!values.categories) {
-    errors.categories = 'Enter some categories';
-  }
-  if (!values.content) {
-    errors.content = 'Enter some content please';
-  }
-
-
-  //if errors is empty, the form is fine to submit
-  //if errors has any properties, redux form assume the form is invalid
+  _.each(FIELDS, (type, field) => {
+    if (!values[field]) {
+      errors[field] = `Enter a ${field}`;
+    }
+  });
   return errors;
 }
 
 export default reduxForm({
-  validate,
   form: 'PostsNewForm',
+  fields: _.keys(FIELDS),
+  validate,
 })(
   connect(null, { createPost })(PostsNew)
 );
